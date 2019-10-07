@@ -3,6 +3,7 @@ const fetch = require('node-fetch');
 const NodeCache = require("node-cache");
 const currentCurriences = new NodeCache();
 let activeCurrencies = [];
+let coinMarketCapPrice = [];
 let positions = {};
 let rsiLower = 35;
 let rsiUpper = 70;
@@ -106,6 +107,7 @@ function callRsi(resolve) {
             }, 5000);
         });
     } else {
+        countRsi = 0;
         console.log("loop done");
         resolve();
     }
@@ -116,9 +118,11 @@ function makedecicions(resolve) {
 }
 
 function start() {
+    activeCurrencies = [];
+    coinMarketCapPrice = [];
     let p = new Promise(function(resolve, reject) {
         get150BiggestCurrencies().then(function(coinmarketcapdata) {
-            myBot.getMarkets().then(function(data) {
+            myBot.getMarketSummaries().then(function(data) {
                 if (data != null) {
                     for (let x in data.result) {
                         if (data.result[x].MarketName.indexOf("BTC-") != -1) {
@@ -126,8 +130,10 @@ function start() {
                                 if (parseInt(coinmarketcapdata[y].rank) < currenciesToCheck) {
                                     let bitrexSymbol = data.result[x].MarketName.split("-");
                                     if (coinmarketcapdata[y].symbol == bitrexSymbol[1]) {
-                                        //console.log(data.result[x]);
-                                        activeCurrencies.push(data.result[x]);
+                                        let obj = data.result[x];
+                                        obj.MarketCurrency = bitrexSymbol[1];
+                                        activeCurrencies.push(obj);
+                                        coinMarketCapPrice.push(coinmarketcapdata[y]);
                                     }
                                 }
 
@@ -143,10 +149,17 @@ function start() {
 }
 
 
+
 function getCurrentPositionValue() {
     let positionsCost = 0;
+
+    let symbolCost = {};
+    activeCurrencies.forEach(function(data) {
+        symbolCost[data.MarketCurrency] = data.Last;
+    });
+
     for (let pos in positions) {
-        positionsCost += positions[pos]["total_amount_bought_in_btc"] * positions[pos]["Last"];
+        positionsCost += symbolCost[pos] * positions[pos]["total_amount_bought_in_btc"];
     }
     console.log("Positions Cost: " + positionsCost);
     let unrealizedPort = positionsCost + portfolio;

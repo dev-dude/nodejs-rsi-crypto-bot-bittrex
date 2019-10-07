@@ -80,6 +80,11 @@ class Bot {
         return this.request({ market });
     }
 
+    async getMarketSummaries() {
+        this.uri.pathname = '/api/v1.1/public/getmarketsummaries';
+        return this.request({});
+    }
+
     async getMarkets(currency = 'eth') {
         this.uri.pathname = '/api/v1.1/public/getmarkets';
         return this.request({});
