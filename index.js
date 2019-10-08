@@ -5,17 +5,17 @@ const currentCurriences = new NodeCache();
 let activeCurrencies = [];
 let coinMarketCapPrice = [];
 let positions = {};
-let rsiLower = 35;
+let rsiLower = 30;
 let rsiUpper = 70;
-let priceOverAsk = 1.03;
-let priceUnderBid = .97;
+let priceOverAsk = 1.02;
+let priceUnderBid = .98;
 let portfolioStart = .124;
 let portfolio = .124; // 1000 USD
 let amountToBuy = 0.0124; // 100 USD
 let soldPositions = [];
 const test = false;
 let loopCount = 0;
-const currenciesToCheck = 40;
+const currenciesToCheck = 30;
 
 
 module.exports = bot;
@@ -122,12 +122,15 @@ function start() {
     coinMarketCapPrice = [];
     let p = new Promise(function(resolve, reject) {
         get150BiggestCurrencies().then(function(coinmarketcapdata) {
+            //coinmarketcapdata.sort((a, b) => (a.percent_change_24h > b.percent_change_24h) ? 1 : -1)
+            let coinmarketCount = 0;
             myBot.getMarketSummaries().then(function(data) {
                 if (data != null) {
                     for (let x in data.result) {
                         if (data.result[x].MarketName.indexOf("BTC-") != -1) {
                             for (let y in coinmarketcapdata) {
-                                if (parseInt(coinmarketcapdata[y].rank) < currenciesToCheck) {
+                                coinmarketCount++;
+                                if (coinmarketcapdata[y].rank < currenciesToCheck) {
                                     let bitrexSymbol = data.result[x].MarketName.split("-");
                                     if (coinmarketcapdata[y].symbol == bitrexSymbol[1]) {
                                         let obj = data.result[x];
@@ -159,7 +162,10 @@ function getCurrentPositionValue() {
     });
 
     for (let pos in positions) {
-        positionsCost += symbolCost[pos] * positions[pos]["total_amount_bought_in_btc"];
+        positions[pos]["currentPrice"] = symbolCost[pos];
+        let positionBTCCost = positions[pos]["currentPrice"] * positions[pos]["total_amount_bought_in_btc"];
+        positions[pos]["current_position_cost"] = positionBTCCost;
+        positionsCost += positionBTCCost;
     }
     console.log("Positions Cost: " + positionsCost);
     let unrealizedPort = positionsCost + portfolio;
@@ -170,13 +176,16 @@ function loop() {
     loopCount++;
     console.log("loopCount " + loopCount);
     start().then(function(e) {
+        console.log("*******************");
+        console.log(positions);
+        console.log("*******************");
+        console.log("******* SOLD POSITIONS *******");
+        console.log(soldPositions);
+        console.log("**************************");
         console.log("start again");
         console.log("portfolio " + portfolio);
         console.log("portfolio Start " + portfolioStart);
         getCurrentPositionValue();
-        console.log("*******************");
-        console.log(positions);
-        console.log("*******************");
         loop();
     });
 };
