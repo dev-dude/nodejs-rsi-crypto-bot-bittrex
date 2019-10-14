@@ -45,7 +45,7 @@ function canBuy(totalCost) {
     return portfolio - totalCost > 0;
 }
 
-function buy(symbol) {
+function buy(symbol, rsiValue) {
     if (!checkIfOwned(symbol)) {
         console.log("BUY " + symbol);
         myBot.getMarketSummary(symbol).then(function(data) {
@@ -59,6 +59,7 @@ function buy(symbol) {
                 let symbolData = data.result[0];
                 symbolData["portfolio_at_buy_btc"] = portfolio;
                 symbolData["buy_price_in_btc"] = priceToBuy;
+                symbolData["rsi_value_at_buy"] = rsiValue;
                 symbolData["total_amount_bought_in_btc"] = amountBought;
                 symbolData["total_cost"] = totalCost;
                 console.log(symbolData);
@@ -70,21 +71,26 @@ function buy(symbol) {
     }
 }
 
-function sell(symbol) {
+function sell(symbol, rsiValue) {
     if (checkIfOwned(symbol)) {
         console.log("SELL " + symbol);
         myBot.getMarketSummary(symbol).then(function(data) {
             console.log(data);
             let priceToSell = data.result[0].Bid * priceUnderBid;
             let totalCost = priceToSell * positions[symbol]["total_amount_bought_in_btc"];
-            portfolio = portfolio + totalCost;
-            let symbolData = positions[symbol];
-            symbolData["portfolio_at_sell_btc"] = portfolio;
-            symbolData["sell_price_in_btc"] = priceToSell;
-            symbolData["total_cost_sold"] = totalCost;
-            delete positions[symbol];
-            console.log(symbolData);
-            soldPositions.push(symbolData);
+
+            // rules    
+            if ((symbolData["buy_price_in_btc"] * 1.05) > priceToSell) {
+                portfolio = portfolio + totalCost;
+                let symbolData = positions[symbol];
+                symbolData["portfolio_at_sell_btc"] = portfolio;
+                symbolData["sell_price_in_btc"] = priceToSell;
+                symbolData["rsi_value_at_sell"] = rsiValue;
+                symbolData["total_cost_sold"] = totalCost;
+                delete positions[symbol];
+                console.log(symbolData);
+                soldPositions.push(symbolData);
+            }
         });
     }
 }
@@ -96,9 +102,9 @@ function callRsi(resolve) {
         myBot.calculateRSI(activeCurrencies[countRsi].MarketCurrency).then(function(data) {
             console.log(activeCurrencies[countRsi].MarketCurrency + " - " + data);
             if ((test && loopCount > 5) || data > rsiUpper) {
-                sell(activeCurrencies[countRsi].MarketCurrency);
+                sell(activeCurrencies[countRsi].MarketCurrency, data);
             } else if (data < rsiLower) {
-                buy(activeCurrencies[countRsi].MarketCurrency);
+                buy(activeCurrencies[countRsi].MarketCurrency, data);
             }
 
             countRsi++;
