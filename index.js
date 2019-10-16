@@ -62,6 +62,8 @@ function buy(symbol, rsiValue) {
                 symbolData["rsi_value_at_buy"] = rsiValue;
                 symbolData["total_amount_bought_in_btc"] = amountBought;
                 symbolData["total_cost"] = totalCost;
+                symbolData["buyTime"] = new Date().toDateString();
+                symbolData["highest_price"] = data.result[0].Ask;
                 console.log(symbolData);
                 positions[symbol] = symbolData;
             } else {
@@ -73,20 +75,24 @@ function buy(symbol, rsiValue) {
 
 function sell(symbol, rsiValue) {
     if (checkIfOwned(symbol)) {
-        console.log("SELL " + symbol);
+        console.log("Possible Sell " + symbol);
         myBot.getMarketSummary(symbol).then(function(data) {
-            console.log(data);
             let priceToSell = data.result[0].Bid * priceUnderBid;
             let totalCost = priceToSell * positions[symbol]["total_amount_bought_in_btc"];
 
             // rules    
-            if ((symbolData["buy_price_in_btc"] * 1.05) > priceToSell) {
+            let symbolData = positions[symbol];
+            // 5 percent stop loss
+            if (symbolData["highest_price"] && priceToSell < symbolData["highest_price"] * .95) {
+                console.log("***SOLD**" + symbol);
+                console.log(data);
                 portfolio = portfolio + totalCost;
-                let symbolData = positions[symbol];
                 symbolData["portfolio_at_sell_btc"] = portfolio;
                 symbolData["sell_price_in_btc"] = priceToSell;
                 symbolData["rsi_value_at_sell"] = rsiValue;
                 symbolData["total_cost_sold"] = totalCost;
+                symbolData["sellTime"] = new Date().toDateString();
+
                 delete positions[symbol];
                 console.log(symbolData);
                 soldPositions.push(symbolData);
@@ -101,7 +107,7 @@ function callRsi(resolve) {
     if (activeCurrencies[countRsi]) {
         myBot.calculateRSI(activeCurrencies[countRsi].MarketCurrency).then(function(data) {
             console.log(activeCurrencies[countRsi].MarketCurrency + " - " + data);
-            if ((test && loopCount > 5) || data > rsiUpper) {
+            if (loopCount > 5) {
                 sell(activeCurrencies[countRsi].MarketCurrency, data);
             } else if (data < rsiLower) {
                 buy(activeCurrencies[countRsi].MarketCurrency, data);
@@ -170,7 +176,13 @@ function getCurrentPositionValue() {
     for (let pos in positions) {
         positions[pos]["currentPrice"] = symbolCost[pos];
         let positionBTCCost = positions[pos]["currentPrice"] * positions[pos]["total_amount_bought_in_btc"];
+
+        if (positions[pos]["highest_price"] && positions[pos]["highest_price"] < symbolCost[pos]) {
+            positions[pos]["highest_price"] = symbolCost[pos];
+        }
+
         positions[pos]["current_position_cost"] = positionBTCCost;
+        positions[pos]["loopCount"] = loopCount;
         positionsCost += positionBTCCost;
     }
     console.log("Positions Cost: " + positionsCost);
