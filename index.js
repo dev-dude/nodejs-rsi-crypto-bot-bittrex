@@ -7,8 +7,8 @@ let coinMarketCapPrice = [];
 let positions = {};
 let rsiLower = 30;
 let rsiUpper = 70;
-let priceOverAsk = 1.02;
-let priceUnderBid = .98;
+let priceOverAsk = 1.015;
+let priceUnderBid = .985;
 let portfolioStart = .124;
 let portfolio = .124; // 1000 USD
 let amountToBuy = 0.0124; // 100 USD
@@ -74,49 +74,57 @@ function buy(symbol, rsiValue) {
 }
 
 function sell(symbol, rsiValue) {
-    if (checkIfOwned(symbol)) {
-        console.log("Possible Sell " + symbol);
-        myBot.getMarketSummary(symbol).then(function(data) {
-            let priceToSell = data.result[0].Bid * priceUnderBid;
-            let totalCost = priceToSell * positions[symbol]["total_amount_bought_in_btc"];
+    let p = new Promise(function(resolve, reject) {
+        if (checkIfOwned(symbol)) {
+            console.log("Possible Sell " + symbol);
+            myBot.getMarketSummary(symbol).then(function(data) {
+                let priceToSell = data.result[0].Bid * priceUnderBid;
+                let totalCost = priceToSell * positions[symbol]["total_amount_bought_in_btc"];
 
-            // rules    
-            let symbolData = positions[symbol];
-            // 5 percent stop loss
-            if (symbolData["highest_price"] && priceToSell < symbolData["highest_price"] * .95) {
-                console.log("***SOLD**" + symbol);
-                console.log(data);
-                portfolio = portfolio + totalCost;
-                symbolData["portfolio_at_sell_btc"] = portfolio;
-                symbolData["sell_price_in_btc"] = priceToSell;
-                symbolData["rsi_value_at_sell"] = rsiValue;
-                symbolData["total_cost_sold"] = totalCost;
-                symbolData["sellTime"] = new Date().toDateString();
+                // rules    
+                let symbolData = positions[symbol];
+                // 5 percent stop loss
+                if (symbolData["highest_price"] && priceToSell < symbolData["highest_price"] * .95) {
+                    console.log("***SOLD**" + symbol);
+                    console.log(data);
+                    portfolio = portfolio + totalCost;
+                    symbolData["portfolio_at_sell_btc"] = portfolio;
+                    symbolData["sell_price_in_btc"] = priceToSell;
+                    symbolData["rsi_value_at_sell"] = rsiValue;
+                    symbolData["total_cost_sold"] = totalCost;
+                    symbolData["sellTime"] = new Date().toDateString();
 
-                delete positions[symbol];
-                console.log(symbolData);
-                soldPositions.push(symbolData);
-            }
-        });
-    }
+                    delete positions[symbol];
+                    console.log(symbolData);
+                    soldPositions.push(symbolData);
+                    resolve();
+                } else {
+                    resolve();
+                }
+            });
+        } else {
+            resolve();
+        }
+    });
+    return p;
 }
 
 let countRsi = 0;
 
 function callRsi(resolve) {
     if (activeCurrencies[countRsi]) {
-        myBot.calculateRSI(activeCurrencies[countRsi].MarketCurrency).then(function(data) {
-            console.log(activeCurrencies[countRsi].MarketCurrency + " - " + data);
-            if (loopCount > 5) {
-                sell(activeCurrencies[countRsi].MarketCurrency, data);
-            } else if (data < rsiLower) {
-                buy(activeCurrencies[countRsi].MarketCurrency, data);
-            }
+        myBot.calculateRSI(activeCurrencies[countRsi].MarketCurrency).then(function(rsiValue) {
+            console.log(activeCurrencies[countRsi].MarketCurrency + " - " + rsiValue);
+            sell(activeCurrencies[countRsi].MarketCurrency, rsiValue).then(function() {
+                if (rsiValue < rsiLower) {
+                    buy(activeCurrencies[countRsi].MarketCurrency, rsiValue);
+                }
+                countRsi++;
+                setTimeout(function() {
+                    callRsi(resolve);
+                }, 3000);
+            });
 
-            countRsi++;
-            setTimeout(function() {
-                callRsi(resolve);
-            }, 5000);
         });
     } else {
         countRsi = 0;
