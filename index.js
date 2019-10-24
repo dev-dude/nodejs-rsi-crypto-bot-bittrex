@@ -5,11 +5,12 @@ const currentCurriences = new NodeCache();
 let activeCurrencies = [];
 let coinMarketCapPrice = [];
 let positions = {};
-let rsiLower = 30;
+let rsiLower = 20;
 let rsiUpper = 70;
-let priceOverAsk = 1.015;
-let priceUnderBid = .985;
+let priceOverAsk = 1.01;
+let priceUnderBid = .99;
 let portfolioStart = .124;
+let stopLoss = .96;
 let portfolio = .124; // 1000 USD
 let amountToBuy = 0.0124; // 100 USD
 let soldPositions = [];
@@ -64,6 +65,7 @@ function buy(symbol, rsiValue) {
                 symbolData["total_cost"] = totalCost;
                 symbolData["buyTime"] = new Date().toDateString();
                 symbolData["highest_price"] = data.result[0].Ask;
+                symbolData["loopCount"] = 0;
                 console.log(symbolData);
                 positions[symbol] = symbolData;
             } else {
@@ -81,10 +83,15 @@ function sell(symbol, rsiValue) {
                 let priceToSell = data.result[0].Bid * priceUnderBid;
                 let totalCost = priceToSell * positions[symbol]["total_amount_bought_in_btc"];
 
-                // rules    
+                // sell rules    
                 let symbolData = positions[symbol];
-                // 5 percent stop loss
-                if (symbolData["highest_price"] && priceToSell < symbolData["highest_price"] * .95) {
+                if (
+                    (symbolData["highest_price"] &&
+                        // stop loss of 5 percent
+                        priceToSell < symbolData["highest_price"] * stopLoss) ||
+                    // held for a long time need to cycle
+                    symbolData["loopCount"] > 1000
+                ) {
                     console.log("***SOLD**" + symbol);
                     console.log(data);
                     portfolio = portfolio + totalCost;
@@ -190,7 +197,7 @@ function getCurrentPositionValue() {
         }
 
         positions[pos]["current_position_cost"] = positionBTCCost;
-        positions[pos]["loopCount"] = loopCount;
+        positions[pos]["loopCount"]++;
         positionsCost += positionBTCCost;
     }
     console.log("Positions Cost: " + positionsCost);
