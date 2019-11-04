@@ -7,8 +7,8 @@ let coinMarketCapPrice = [];
 let positions = {};
 let rsiLower = 20;
 let rsiUpper = 70;
-let priceOverAsk = 1.01;
-let priceUnderBid = .99;
+let priceOverAsk = 1.005;
+let priceUnderBid = .995;
 let portfolioStart = .124;
 let stopLoss = .96;
 let portfolio = .124; // 1000 USD
@@ -90,11 +90,16 @@ function sell(symbol, rsiValue) {
                         // stop loss of 5 percent
                         priceToSell < symbolData["highest_price"] * stopLoss) ||
                     // held for a long time need to cycle
-                    symbolData["loopCount"] > 1000
+                    symbolData["loopCount"] > 2000
                 ) {
+
+
+
                     console.log("***SOLD**" + symbol);
                     console.log(data);
                     portfolio = portfolio + totalCost;
+                    symbolData["sold_bc_of_stop"] = priceToSell < symbolData["highest_price"] * stopLoss;
+                    symbolData["sold_bc_of_loop"] = symbolData["loopCount"] > 2000;
                     symbolData["portfolio_at_sell_btc"] = portfolio;
                     symbolData["sell_price_in_btc"] = priceToSell;
                     symbolData["rsi_value_at_sell"] = rsiValue;
