@@ -17,21 +17,43 @@ let soldPositions = [];
 const test = false;
 let loopCount = 0;
 const currenciesToCheck = 30;
+const coinbaseCurrencies = [
+    { symbol: "BTC" },
+    { symbol: "ETH" },
+    { symbol: "XRP" },
+    { symbol: "LTC" },
+    { symbol: "BCH" },
+    { symbol: "EOS" },
+    { symbol: "DASH" },
+    { symbol: "OXT" },
+    { symbol: "XLM" },
+    { symbol: "ATOM" },
+    { symbol: "XTZ" },
+    { symbol: "ETC" },
+    { symbol: "LINK" },
+    { symbol: "REP" },
+    { symbol: "ZRX" },
+    { symbol: "ALGO" }
+]
+const coinbaseOnly = true;
 
 
 module.exports = bot;
-
 let myBot = new bot.Bot({ "apikey": "", "apisecret": "" });
 
 function get150BiggestCurrencies() {
     let p = new Promise(function(resolve, reject) {
-        fetch('https://api.coinmarketcap.com/v1/ticker/').then(function(response) {
-            return response.json();
-        }).then(function(json) {
-            resolve(json);
-        }).catch(function(e) {
-            console.log(e);
-        });
+        if (coinbaseOnly) {
+            resolve(coinbaseCurrencies);
+        } else {
+            fetch('https://api.coinmarketcap.com/v1/ticker/').then(function(response) {
+                return response.json();
+            }).then(function(json) {
+                resolve(json);
+            }).catch(function(e) {
+                console.log(e);
+            });
+        }
     });
     return p;
 }
@@ -162,7 +184,7 @@ function start() {
                         if (data.result[x].MarketName.indexOf("BTC-") != -1) {
                             for (let y in coinmarketcapdata) {
                                 coinmarketCount++;
-                                if (coinmarketcapdata[y].rank < currenciesToCheck) {
+                                if (coinbaseCurrencies || (coinmarketcapdata[y].rank < currenciesToCheck)) {
                                     let bitrexSymbol = data.result[x].MarketName.split("-");
                                     if (coinmarketcapdata[y].symbol == bitrexSymbol[1]) {
                                         let obj = data.result[x];
