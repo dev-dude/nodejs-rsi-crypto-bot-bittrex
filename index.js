@@ -1,6 +1,7 @@
 const bot = require('./src');
 const fetch = require('node-fetch');
 const NodeCache = require("node-cache");
+const mysql = require("mysql");
 const currentCurriences = new NodeCache();
 let activeCurrencies = [];
 let coinMarketCapPrice = [];
@@ -36,6 +37,13 @@ const coinbaseCurrencies = [
     { symbol: "ALGO" }
 ]
 const coinbaseOnly = true;
+
+const connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'stock'
+});
 
 
 module.exports = bot;
@@ -149,16 +157,18 @@ function callRsi(resolve) {
     if (activeCurrencies[countRsi]) {
         myBot.calculateRSI(activeCurrencies[countRsi].MarketCurrency).then(function(rsiValue) {
             console.log(activeCurrencies[countRsi].MarketCurrency + " - " + rsiValue);
-            sell(activeCurrencies[countRsi].MarketCurrency, rsiValue).then(function() {
-                if (rsiValue < rsiLower) {
-                    buy(activeCurrencies[countRsi].MarketCurrency, rsiValue);
-                }
-                countRsi++;
-                setTimeout(function() {
-                    callRsi(resolve);
-                }, 3000);
+            let d = activeCurrencies[countRsi];
+            connection.query('REPLACE INTO symbols SET market_name = ?, high = ?, low = ?, volume = ?, last = ?, base_volume = ?, time = ?, bid = ?, ask = ?, open_buy_orders = ?, open_sell_orders = ?, previous_day = ?, rsi = ?', [d.MarketName, d.High, d.Low, d.Volume, d.Last, d.Base, d.TimeStamp, d.Bid, d.Ask, d.OpenBuyOrders, d.OpenSellOrders, d.PrevDay, rsiValue], function(error, results, fields) {
+                sell(activeCurrencies[countRsi].MarketCurrency, rsiValue).then(function() {
+                    if (rsiValue < rsiLower) {
+                        buy(activeCurrencies[countRsi].MarketCurrency, rsiValue);
+                    }
+                    countRsi++;
+                    setTimeout(function() {
+                        callRsi(resolve);
+                    }, 3000);
+                });
             });
-
         });
     } else {
         countRsi = 0;
