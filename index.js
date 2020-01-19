@@ -179,7 +179,7 @@ function sell(symbol, rsiValue, currentCoin) {
                     sellReason = "stop loss of 5 percent";
                 }
 
-                if (sellBcOfRsiBound || sellBcOfStopLoss || sellBcOfHeldVeryLong) {
+                if ( /*sellBcOfRsiBound ||*/ sellBcOfStopLoss || sellBcOfHeldVeryLong) {
                     console.log("***SOLD**" + symbol);
                     console.log(data);
                     portfolio = portfolio + totalCost;
