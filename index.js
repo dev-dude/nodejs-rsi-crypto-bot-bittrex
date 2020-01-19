@@ -8,8 +8,8 @@ let coinMarketCapPrice = [];
 let positions = {};
 let rsiLower = 20;
 let rsiUpper = 70;
-let priceOverAsk = 1.005;
-let priceUnderBid = .995;
+let priceOverAsk = 1.01;
+let priceUnderBid = .99;
 let portfolioStart = 10000;
 let stopLoss = .96;
 let portfolio = 10000; // 1000 USD
@@ -82,9 +82,11 @@ function updateStoredRsis(symbol) {
 
 
 // Run every 24 hours to recalibrate the RSIs
+/*
 setInterval(function() {
     updateStoredRsis(coinbaseCurrencies[coinbaseCurrencyPos].symbol)
 }, 18000000);
+*/
 
 module.exports = bot;
 let myBot = new bot.Bot({ "apikey": "", "apisecret": "" });
@@ -157,11 +159,13 @@ function sell(symbol, rsiValue, currentCoin) {
                 let symbolData = positions[symbol];
                 let sellReason = "";
 
+                /*
                 let sellBcOfRsiBound = false;
                 if (rsiValue > (currentCoin.rsiUpper * rsiUpperScalar)) {
                     sellBcOfRsiBound = true;
                     sellReason = "Rsi of coin higher " + rsiValue + " - coin rsi - " + currentCoin.rsiUpper;
                 }
+                */
 
                 let sellBcOfHeldVeryLong = false;
                 if (symbolData["loopCount"] > 2000) {
