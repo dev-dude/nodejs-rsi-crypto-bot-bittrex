@@ -76,7 +76,7 @@ class Bot {
 
     async getMarketSummary(currency = 'eth') {
         this.uri.pathname = '/api/v1.1/public/getmarketsummary';
-        const market = `btc-${currency}`;
+        const market = `usd-${currency}`;
         return this.request({ market });
     }
 
@@ -119,7 +119,7 @@ class Bot {
     async getTicks(currency, unit) {
         this.uri.pathname = '/api/v2.0//pub/market/GetTicks';
         const options = {
-            marketName: `BTC-${currency}`,
+            marketName: `USD-${currency}`,
             tickInterval: unit,
         };
         return this.request(options);
