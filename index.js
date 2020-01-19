@@ -84,7 +84,7 @@ function updateStoredRsis(symbol) {
 // Run every 24 hours to recalibrate the RSIs
 setInterval(function() {
     updateStoredRsis(coinbaseCurrencies[coinbaseCurrencyPos].symbol)
-}, 86400000);
+}, 18000000);
 
 module.exports = bot;
 let myBot = new bot.Bot({ "apikey": "", "apisecret": "" });
