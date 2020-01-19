@@ -210,7 +210,7 @@ function callRsi(resolve) {
         myBot.calculateRSI(activeCurrencies[countRsi].MarketCurrency).then(function(rsiValue) {
             console.log(activeCurrencies[countRsi].MarketCurrency + " - " + rsiValue);
             let d = activeCurrencies[countRsi];
-            connection.query('REPLACE INTO symbols SET market_name = ?, high = ?, low = ?, volume = ?, last = ?, base_volume = ?, time = ?, bid = ?, ask = ?, open_buy_orders = ?, open_sell_orders = ?, previous_day = ?, rsi = ?', [d.MarketName, d.High, d.Low, d.Volume, d.Last, d.Base, d.TimeStamp, d.Bid, d.Ask, d.OpenBuyOrders, d.OpenSellOrders, d.PrevDay, rsiValue], function(error, results, fields) {
+            connection.query('REPLACE INTO symbols SET market_name = ?, high = ?, low = ?, volume = ?, last = ?, base_volume = ?, time = ?, bid = ?, ask = ?, open_buy_orders = ?, open_sell_orders = ?, previous_day = ?, rsi = ?', [d.MarketName, d.High, d.Low, d.Volume, d.Last, d.BaseVolume, d.TimeStamp, d.Bid, d.Ask, d.OpenBuyOrders, d.OpenSellOrders, d.PrevDay, rsiValue], function(error, results, fields) {
 
                 let sym = d.MarketName.split("-")[1];
                 let currentCoin = getCoinbaseRsi(sym);
