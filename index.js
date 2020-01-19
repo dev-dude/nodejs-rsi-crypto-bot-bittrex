@@ -21,22 +21,22 @@ const test = false;
 let loopCount = 0;
 const currenciesToCheck = 30;
 const coinbaseCurrencies = [
-    { symbol: "BTC", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "ETH", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "XRP", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "LTC", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "BCH", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "EOS", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "DASH", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "OXT", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "XLM", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "ATOM", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "XTZ", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "ETC", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "LINK", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "REP", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "ZRX", rsiLower: 20, rsiUpper: 70 },
-    { symbol: "ALGO", rsiLower: 20, rsiUpper: 70 }
+    { symbol: "BTC", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "ETH", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "XRP", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "LTC", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "BCH", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "EOS", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "DASH", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "OXT", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "XLM", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "ATOM", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "XTZ", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "ETC", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "LINK", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "REP", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "ZRX", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 },
+    { symbol: "ALGO", rsiLower: 20, rsiUpper: 70, waitTilBuy: 0 }
 ]
 const coinbaseOnly = true;
 let coinbaseCurrencyPos = 0;
@@ -119,7 +119,15 @@ function canBuy(totalCost) {
 }
 
 function buy(symbol, rsiValue) {
-    if (!checkIfOwned(symbol)) {
+
+    let canBuyWithoutWaiting = true;
+    let canWaitSymbol = getCoinbaseRsi(symbol);
+    if (canWaitSymbol.waitTilBuy && canWaitSymbol.waitTilBuy > 0) {
+        console.log("waiting to buy again: " + canWaitSymbol.waitTilBuy + " " + symbol);
+        canBuyWithoutWaiting = false;
+    }
+
+    if (!checkIfOwned(symbol) && canBuyWithoutWaiting) {
         console.log("BUY " + symbol);
         myBot.getMarketSummary(symbol).then(function(data) {
             console.log(data);
@@ -159,9 +167,10 @@ function sell(symbol, rsiValue, currentCoin) {
                 let symbolData = positions[symbol];
                 let sellReason = "";
 
-                /*
+
                 let sellBcOfRsiBound = false;
-                if (rsiValue > (currentCoin.rsiUpper * rsiUpperScalar)) {
+                /*
+                if (rsiValue > (currentCoin.rsiUpper)) {
                     sellBcOfRsiBound = true;
                     sellReason = "Rsi of coin higher " + rsiValue + " - coin rsi - " + currentCoin.rsiUpper;
                 }
@@ -179,7 +188,7 @@ function sell(symbol, rsiValue, currentCoin) {
                     sellReason = "stop loss of 5 percent";
                 }
 
-                if ( /*sellBcOfRsiBound ||*/ sellBcOfStopLoss || sellBcOfHeldVeryLong) {
+                if (sellBcOfRsiBound || sellBcOfStopLoss || sellBcOfHeldVeryLong) {
                     console.log("***SOLD**" + symbol);
                     console.log(data);
                     portfolio = portfolio + totalCost;
@@ -191,6 +200,16 @@ function sell(symbol, rsiValue, currentCoin) {
                     symbolData["sellReason"] = sellReason;
                     symbolData["total_cost_sold"] = totalCost;
                     symbolData["sellTime"] = new Date().toDateString();
+
+                    let gain = symbolData["total_cost_sold"] - symbolData["total_cost"];
+                    symbolData["gain"] = gain;
+                    symbolData["waitTilBuy"] = 0;
+                    if (gain < 0) {
+                        symbolData["gain"] = gain;
+                        symbolData["waitTilBuy"] = 40;
+                        let canWaitSymbol = getCoinbaseRsi(symbol);
+                        canWaitSymbol.waitTilBuy = 40;
+                    }
 
                     delete positions[symbol];
                     console.log(symbolData);
@@ -299,6 +318,13 @@ function getCurrentPositionValue() {
     console.log("Positions Cost: " + positionsCost);
     let unrealizedPort = positionsCost + portfolio;
     console.log("Unrelaized Portfolio " + unrealizedPort);
+
+    // Reset waiting periods
+    coinbaseCurrencies.forEach(function(coin) {
+        if (coin.waitTilBuy > 0) {
+            coin.waitTilBuy--;
+        }
+    });
 }
 
 function loop() {
